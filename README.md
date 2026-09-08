@@ -19,6 +19,14 @@ pip install -r requirements.txt
 python train.py
 ```
 
+The model is available from the import-friendly `seq2seq_model` module. The
+original `Seq2Seq Model.py` filename remains as a compatibility wrapper for
+existing notebooks.
+
+`Seq2Seq.forward` accepts optional source lengths so encoder states ignore
+right-padding, and `Seq2Seq.generate` provides greedy BOS-to-EOS decoding for
+inference.
+
 The demo trains on a tiny English→French corpus so the full training and evaluation path is easy to reproduce. It is intentionally small and is not a benchmark-quality translation system.
 
 ## What to extend
