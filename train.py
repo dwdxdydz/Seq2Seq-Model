@@ -5,9 +5,7 @@ import random
 import torch
 from torch import nn
 
-from importlib.machinery import SourceFileLoader
-
-model_lib = SourceFileLoader("seq2seq_model", "Seq2Seq Model.py").load_module()
+import seq2seq_model as model_lib
 
 SPECIAL = ["<pad>", "<unk>", "<bos>", "<eos>"]
 PAIRS = [
@@ -50,17 +48,18 @@ def main(epochs=250, seed=7):
     trg = pad_batch([encode(t, trg_vocab, target=True) for _, t in PAIRS], trg_vocab["<pad>"])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    encoder = model_lib.Encoder(len(src_vocab), 32, 64)
-    decoder = model_lib.Decoder(len(trg_vocab), 32, 64)
+    encoder = model_lib.Encoder(len(src_vocab), 32, 64, padding_idx=src_vocab["<pad>"])
+    decoder = model_lib.Decoder(len(trg_vocab), 32, 64, padding_idx=trg_vocab["<pad>"])
     model = model_lib.Seq2Seq(encoder, decoder, device).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     criterion = nn.CrossEntropyLoss(ignore_index=trg_vocab["<pad>"])
+    src_lengths = (src != src_vocab["<pad>"]).sum(dim=1).to(device)
     src, trg = src.to(device), trg.to(device)
 
     for epoch in range(1, epochs + 1):
         model.train()
         optimizer.zero_grad()
-        output = model(src, trg, teacher_forcing_ratio=0.7)
+        output = model(src, trg, teacher_forcing_ratio=0.7, src_lengths=src_lengths)
         loss = criterion(output[:, 1:].reshape(-1, len(trg_vocab)), trg[:, 1:].reshape(-1))
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -70,7 +69,7 @@ def main(epochs=250, seed=7):
 
     model.eval()
     with torch.no_grad():
-        output = model(src, trg, teacher_forcing_ratio=0)
+        output = model(src, trg, teacher_forcing_ratio=0, src_lengths=src_lengths)
         predictions = output[:, 1:].argmax(-1)
         targets = trg[:, 1:]
         mask = targets != trg_vocab["<pad>"]
