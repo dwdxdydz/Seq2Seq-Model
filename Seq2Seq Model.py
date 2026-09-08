@@ -1,92 +1,56 @@
-"""Greedy decoding helper for a trained sequence-to-sequence model."""
-
-from typing import Any, List
+"""Small, educational GRU encoder-decoder sequence-to-sequence model."""
 
 import torch
+from torch import nn
 
 
-def _tokenize(sentence: str) -> List[str]:
-    """Basic tokenizer used when the training pipeline provides no custom tokenizer."""
-    return sentence.strip().lower().split()
+class Encoder(nn.Module):
+    def __init__(self, input_dim: int, embedding_dim: int, hidden_dim: int, dropout: float = 0.2):
+        super().__init__()
+        self.embedding = nn.Embedding(input_dim, embedding_dim)
+        self.rnn = nn.GRU(embedding_dim, hidden_dim, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, src):
+        embedded = self.dropout(self.embedding(src))
+        _, hidden = self.rnn(embedded)
+        return hidden
 
 
-def _lookup_token(vocab: Any, token: str) -> int:
-    """Support common vocab APIs used by PyTorch/torchtext-style vocabularies."""
-    if hasattr(vocab, "get_stoi"):
-        mapping = vocab.get_stoi()
-        return mapping.get(token, mapping.get("<unk>", 0))
-    if hasattr(vocab, "__getitem__"):
-        try:
-            return int(vocab[token])
-        except (KeyError, TypeError):
-            try:
-                return int(vocab["<unk>"])
-            except (KeyError, TypeError):
-                return 0
-    raise TypeError("Vocabulary must support token lookup")
+class Decoder(nn.Module):
+    def __init__(self, output_dim: int, embedding_dim: int, hidden_dim: int, dropout: float = 0.2):
+        super().__init__()
+        self.output_dim = output_dim
+        self.embedding = nn.Embedding(output_dim, embedding_dim)
+        self.rnn = nn.GRU(embedding_dim, hidden_dim, batch_first=True)
+        self.fc_out = nn.Linear(hidden_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, input_token, hidden):
+        embedded = self.dropout(self.embedding(input_token.unsqueeze(1)))
+        output, hidden = self.rnn(embedded, hidden)
+        prediction = self.fc_out(output.squeeze(1))
+        return prediction, hidden
 
 
-def _lookup_index(vocab: Any, token: str) -> int:
-    return _lookup_token(vocab, token)
+class Seq2Seq(nn.Module):
+    def __init__(self, encoder: Encoder, decoder: Decoder, device: torch.device):
+        super().__init__()
+        if encoder.rnn.hidden_size != decoder.rnn.hidden_size:
+            raise ValueError("Encoder and decoder hidden dimensions must match")
+        self.encoder, self.decoder, self.device = encoder, decoder, device
 
-
-def _itos(vocab: Any, index: int) -> str:
-    if hasattr(vocab, "get_itos"):
-        return vocab.get_itos()[index]
-    if hasattr(vocab, "itos"):
-        return vocab.itos[index]
-    raise TypeError("Vocabulary must expose get_itos() or itos")
-
-
-def translate_sentence(
-    sentence: str,
-    model: Any,
-    src_vocab: Any,
-    trg_vocab: Any,
-    device: torch.device,
-    max_length: int = 50,
-) -> str:
-    """Translate one sentence using greedy decoding.
-
-    The model is expected to accept ``(src_tensor, trg_tensor,
-    teacher_forcing_ratio=0)`` and return logits as its first value.
-    """
-    tokens = _tokenize(sentence)
-    if not tokens:
-        return ""
-
-    src_ids = [_lookup_token(src_vocab, token) for token in tokens]
-    src_tensor = torch.tensor(src_ids, dtype=torch.long, device=device).unsqueeze(0)
-
-    bos_id = _lookup_index(trg_vocab, "<bos>")
-    eos_id = _lookup_index(trg_vocab, "<eos>")
-    trg_tensor = torch.tensor([[bos_id]], dtype=torch.long, device=device)
-
-    model.eval()
-    with torch.no_grad():
-        for _ in range(max_length):
-            output, _, _ = model(
-                src_tensor,
-                trg_tensor,
-                teacher_forcing_ratio=0,
-            )
-
-            # Most seq2seq models return [batch, target_len, vocab_size].
-            logits = output[:, -1, :] if output.ndim == 3 else output
-            next_id = int(logits.argmax(dim=-1).item())
-            next_token = torch.tensor([[next_id]], dtype=torch.long, device=device)
-            trg_tensor = torch.cat((trg_tensor, next_token), dim=1)
-
-            if next_id == eos_id:
-                break
-
-    translated = [
-        _itos(trg_vocab, idx)
-        for idx in trg_tensor.squeeze(0).tolist()[1:]
-    ]
-    translated = [token for token in translated if token not in {"<pad>", "<eos>"}]
-    return " ".join(translated)
-
-
-if __name__ == "__main__":
-    print("Seq2Seq decoding helper loaded. Provide a trained model and vocabularies to translate_sentence().")
+    def forward(self, src, trg, teacher_forcing_ratio: float = 0.5):
+        if not 0 <= teacher_forcing_ratio <= 1:
+            raise ValueError("teacher_forcing_ratio must be between 0 and 1")
+        batch_size, trg_len = trg.shape
+        output_dim = self.decoder.output_dim
+        outputs = torch.zeros(batch_size, trg_len, output_dim, device=self.device)
+        hidden = self.encoder(src)
+        input_token = trg[:, 0]
+        for t in range(1, trg_len):
+            prediction, hidden = self.decoder(input_token, hidden)
+            outputs[:, t] = prediction
+            top1 = prediction.argmax(1)
+            input_token = trg[:, t] if torch.rand(1).item() < teacher_forcing_ratio else top1
+        return outputs
