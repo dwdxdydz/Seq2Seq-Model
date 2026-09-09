@@ -1,16 +1,32 @@
-# Seq2Seq Machine Translation
+# 🤖 Seq2Seq Machine Translation
 
-Educational GRU encoder-decoder implementation with teacher forcing, gradient clipping, reproducible training, and token-level evaluation.
+An educational **GRU-based sequence-to-sequence machine translation system** with teacher forcing, padding-aware encoding, gradient clipping, reproducible training, greedy decoding, and token-level evaluation.
 
 ## Architecture
 
 ```text
-Source tokens → Embedding → GRU Encoder → Hidden State
-                                           ↓
+Source sentence
+      ↓
+Tokenization / vocabulary
+      ↓
+Embedding → GRU Encoder → Context / Hidden State
+                              ↓
 Target BOS → Embedding → GRU Decoder → Vocabulary logits
-                              ↑
-                    teacher forcing
+                    ↑
+              Teacher forcing
 ```
+
+## Features
+
+- GRU encoder-decoder architecture
+- Teacher forcing during training
+- Padding-aware encoder states
+- Gradient clipping
+- Greedy BOS-to-EOS inference
+- Reproducible demo training
+- Token-level evaluation
+- Import-friendly model module
+- Automated tests
 
 ## Run the demo
 
@@ -19,22 +35,21 @@ pip install -r requirements.txt
 python train.py
 ```
 
-The model is available from the import-friendly `seq2seq_model` module. The
-original `Seq2Seq Model.py` filename remains as a compatibility wrapper for
-existing notebooks.
+The original `Seq2Seq Model.py` filename remains as a compatibility wrapper for existing notebooks. The demo trains on a tiny English→French corpus so the complete training and evaluation path is easy to reproduce.
 
-`Seq2Seq.forward` accepts optional source lengths so encoder states ignore
-right-padding, and `Seq2Seq.generate` provides greedy BOS-to-EOS decoding for
-inference.
+> **Note:** The included corpus is intentionally small. It demonstrates the architecture and workflow rather than providing benchmark-quality translation performance.
 
-The demo trains on a tiny English→French corpus so the full training and evaluation path is easy to reproduce. It is intentionally small and is not a benchmark-quality translation system.
+## Portfolio value
 
-## What to extend
+Demonstrates **Python, PyTorch, deep learning, NLP, sequence modelling, model training, evaluation, and software testing**.
+
+## Future improvements
 
 - Replace the demo corpus with a real parallel dataset
-- Add validation/test splits
-- Report BLEU alongside token accuracy
-- Add attention
-- Save/load checkpoints
+- Add train/validation/test splits
+- Report BLEU and other translation metrics
+- Add attention mechanisms
+- Save and load model checkpoints
 - Add beam-search decoding
 - Track experiments and training curves
+- Compare GRU performance with Transformer models
