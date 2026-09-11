@@ -4,121 +4,194 @@
 
 This project builds a small **machine-translation system** that learns to convert a sentence from one language into another.
 
-The included example uses English → French.
+The included example uses **English → French**.
 
-For example, the model can learn a relationship such as:
+For example, the model learns from examples such as:
 
 ```text
-English sentence
-      ↓
-"hello"
-      ↓
-Neural network
-      ↓
-French sentence
-      ↓
-"bonjour"
+English              French
+----------------------------
+hello                bonjour
+thank you             merci
+how are you?          comment allez-vous ?
 ```
 
-The project is designed to show how a sequence-to-sequence model is built, trained and used for prediction.
+The goal of this project is not to compete with modern translation tools. It is to show, from start to finish, how a basic neural-network translation system is built, trained and used to make predictions.
 
 ## How does it work?
+
+A sentence is made of words or smaller pieces of text. A neural network cannot directly process those words, so the application first converts them into numbers.
+
+The basic flow is:
 
 ```text
 Input sentence
       ↓
-Convert words into numbers
+Tokenisation
+      ↓
+Convert tokens to numbers
       ↓
 GRU Encoder
       ↓
-Understand the input sequence
+Create an internal representation
       ↓
 GRU Decoder
       ↓
-Generate the output one token at a time
+Generate output tokens one by one
       ↓
 Translated sentence
 ```
 
-The model learns from example pairs of sentences during training.
-
-## Main features
-
-- GRU-based encoder-decoder model
-- Teacher forcing during training
-- Padding-aware sequence handling
-- Gradient clipping for more stable training
-- Greedy decoding from beginning-of-sentence to end-of-sentence
-- Reproducible demo training
-- Token-level evaluation
-- Importable model module
-- Automated tests
-
-## Run the demo
-
-```bash
-pip install -r requirements.txt
-python train.py
-```
-
-The project intentionally uses a very small English → French dataset. This makes the complete training process easy to understand and reproduce, but it is **not large enough for high-quality real-world translation**.
-
-The original `Seq2Seq Model.py` file is kept as a compatibility wrapper for existing notebooks.
+The model learns this behaviour by seeing example input/output sentence pairs during training.
 
 ## What happens during training?
 
-The model sees many examples such as:
+Suppose the training data contains:
 
 ```text
 Input:  hello
 Target: bonjour
 ```
 
-It makes a prediction, compares that prediction with the correct answer, and adjusts its internal parameters.
+The model makes a prediction. The prediction is compared with the correct target, and the model's internal parameters are adjusted.
 
-This process is repeated many times so that the model gradually learns patterns in the training examples.
+This happens repeatedly over many training examples. The aim is for the model to gradually learn patterns that help it produce the correct output.
+
+```text
+Example sentence
+      ↓
+Model prediction
+      ↓
+Compare with correct answer
+      ↓
+Calculate error
+      ↓
+Adjust model
+      ↓
+Repeat
+```
+
+## Main features
+
+- GRU-based encoder-decoder architecture.
+- Tokenisation and vocabulary handling.
+- Teacher forcing during training.
+- Padding-aware sequence handling.
+- Gradient clipping for more stable training.
+- Greedy decoding from beginning-of-sentence to end-of-sentence.
+- Reproducible demo training.
+- Token-level evaluation.
+- Importable model module.
+- Automated tests.
+
+## Run the demo
+
+Install the requirements:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run training and evaluation:
+
+```bash
+python train.py
+```
+
+The project intentionally uses a very small English → French dataset. This makes the complete workflow easier to understand and reproduce, but the dataset is **far too small for high-quality real-world translation**.
+
+The original `Seq2Seq Model.py` file is kept as a compatibility wrapper for existing notebooks.
+
+## Project structure
+
+```text
+train.py             → Creates the demo data and trains/evaluates the model
+seq2seq_model/       → Reusable encoder, decoder and Seq2Seq model code
+Seq2Seq Model.py     → Compatibility wrapper for the original filename
+requirements.txt     → Python dependencies
+tests/               → Automated tests
+```
+
+## Main technologies
+
+- **Python** — programming language used for the project
+- **PyTorch** — builds and trains the neural network
+- **GRU** — neural-network component used to process sequences
+- **NLP** — techniques for working with human language
+- **Pytest** — automated testing framework
+- **GitHub Actions** — automated checks for code changes
 
 ## Technical terms explained
 
-**Seq2Seq (Sequence-to-Sequence)** — A model architecture designed to take one sequence as input and produce another sequence as output. Translation is a common example.
+**Machine translation** — Automatically converting text from one human language into another.
 
-**GRU (Gated Recurrent Unit)** — A type of recurrent neural network that can remember useful information from earlier parts of a sequence while processing new information.
+**Seq2Seq (Sequence-to-Sequence)** — A neural-network architecture that takes one sequence as input and produces another sequence as output. Translation is a common example.
 
-**Encoder** — The part of the model that reads the input sentence and creates an internal representation of it.
+**Neural network** — A machine-learning model made of connected mathematical operations. During training, it adjusts internal parameters so that its predictions become more accurate.
 
-**Decoder** — The part of the model that uses the encoder's information to generate the output sentence step by step.
+**GRU (Gated Recurrent Unit)** — A type of recurrent neural network designed to process sequences while keeping useful information from earlier parts of the sequence.
 
-**Token** — A small piece of text processed by the model. It can be a word, part of a word or a special symbol.
+**Encoder** — The part of a Seq2Seq model that reads the input sequence and creates information that represents it.
 
-**Embedding** — A numerical representation of a token that allows the neural network to work with text mathematically.
+**Decoder** — The part that uses the encoder's information to generate the output sequence step by step.
 
-**Teacher forcing** — During training, the decoder is sometimes given the correct previous word instead of its own previous prediction. This helps training converge more easily.
+**Token** — A small piece of text given to the model. Depending on the tokenizer, a token can be a word, part of a word or a special symbol.
 
-**Padding** — Adding special empty values to shorter sequences so sequences in the same training batch can have the same length.
+**Tokenisation** — Splitting text into tokens so that a model can process it.
 
-**Gradient clipping** — Limiting very large training updates so the model is less likely to become unstable during training.
+**Vocabulary** — The collection of tokens that the model knows about, usually mapped to numerical IDs.
 
-**Greedy decoding** — At each step, selecting the token with the highest predicted probability rather than considering many possible sentences.
+**Embedding** — A numerical representation of a token. The neural network learns useful relationships between these numbers during training.
 
-**PyTorch** — A Python machine-learning framework used to build and train the neural network.
+**Sequence** — An ordered collection of tokens, such as the tokens that make up a sentence.
 
-**Evaluation** — Measuring how well the trained model performs on examples.
+**Padding** — Adding special placeholder values to shorter sequences so that multiple sequences can be processed together in a batch.
+
+**Teacher forcing** — During training, the decoder is given the correct previous token instead of always using its own previous prediction. This usually makes learning easier and faster.
+
+**Gradient** — Information calculated during training that tells the model how its parameters should change to reduce its error.
+
+**Gradient clipping** — Limiting very large gradient values so that training is less likely to become unstable.
+
+**Greedy decoding** — At each output step, choosing the token with the highest predicted probability instead of exploring many possible sequences.
+
+**BOS (Beginning of Sentence)** — A special token that tells the decoder that it is starting a new output sentence.
+
+**EOS (End of Sentence)** — A special token that tells the decoder that the output sentence is finished.
+
+**Training** — The process of showing examples to a model and adjusting its parameters so it learns patterns from those examples.
+
+**Evaluation** — Measuring how well a trained model performs on examples.
+
+**Token-level evaluation** — Comparing predicted and expected tokens to estimate how often the model produces the correct token.
+
+**PyTorch** — A Python framework used for building, training and running machine-learning models.
+
+**NLP (Natural Language Processing)** — The area of computing focused on working with human language.
+
+**Epoch** — One complete pass through the training dataset.
+
+**Model parameter** — A value inside the neural network that is adjusted during training.
 
 ## What does this project demonstrate?
 
-The project demonstrates the full basic deep-learning workflow:
+The project shows the basic deep-learning workflow:
 
 **Text → tokens → neural network → training → prediction → evaluation**
 
-It demonstrates practical **Python, PyTorch, deep learning, NLP, sequence modelling, model training, evaluation and testing** skills.
+It demonstrates practical **Python, PyTorch, deep learning, NLP, sequence modelling, model training, evaluation and software testing** skills.
+
+## Important limitation
+
+This is an educational project. The included dataset is intentionally tiny, so its translation quality should not be compared with production translation systems trained on millions of examples.
 
 ## Future improvements
 
-- Use a real, larger translation dataset
-- Add train/validation/test splits
-- Add BLEU and other translation metrics
-- Add attention
-- Save and load trained models
-- Add beam-search decoding
-- Track training and validation curves
-- Compare the GRU model with Transformer models
+- Use a real, larger translation dataset.
+- Add train/validation/test splits.
+- Add BLEU and other translation metrics.
+- Add an attention mechanism.
+- Save and load trained model checkpoints.
+- Add beam-search decoding.
+- Track training and validation curves.
+- Compare the GRU model with Transformer models.
